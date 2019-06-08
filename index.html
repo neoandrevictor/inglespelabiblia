@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://rawgit.com/notifyjs/notifyjs/master/dist/notify.js"></script>
+
+    <script src="en_kjv.js"></script>
+    <script src="pt_acf.js"></script>
+    <script src="dictionary.js"></script>
+    <title>Inglês pela Bíblia</title>
+    <style>
+        w, .big {
+            font-size: xx-large;
+
+        }
+    </style>
+    <script>
+        window.SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+
+
+        function main() {
+            addFunctions();
+            dizer("");
+            createSelectLivros();
+            createSelectCapitulos();
+            createSelectVersos();
+        }
+
+
+        function traduzir(palavra){
+            palavra=palavra.toLowerCase();
+            codigo=`localStorage.setItem("traducao",dictionary.${palavra})`;
+            systemCall(codigo);
+            return localStorage.getItem("traducao");
+        }
+
+        function carregaVersos() {
+            document.getElementById("idioma").innerText = 1;
+            let livro = document.getElementById("livros").value;
+            let livroNome=document.getElementById("livros").children[livro].innerText;
+            let capitulo = document.getElementById("capitulos").value;
+            let verso = document.getElementById("versos").value;
+            let capituloNum = document.getElementById("capitulos").value*1+1;
+            let versoNum = document.getElementById("versos").value*1+1;
+            versoTexto=en_kjv[livro].chapters[capitulo][verso];
+            versoTextoVetor=versoTexto.split(" ");
+            document.getElementById("verso").innerHTML="";
+            for (let k=0;k<versoTextoVetor.length;k++){
+                let w=document.createElement("w");
+                w.setAttribute("en",versoTextoVetor[k])
+                w.innerText=versoTextoVetor[k]+" ";
+                document.getElementById("verso").appendChild(w);
+               
+
+            }
+           
+            document.getElementById("verso").setAttribute("en",en_kjv[livro].chapters[capitulo][verso]);
+            document.getElementById("verso").setAttribute("pt",pt_acf[livro].chapters[capitulo][verso]);
+            document.getElementById("titulo").innerText=livroNome + " " + capituloNum + ":" +versoNum;
+            addFunctions();
+        }
+        function createSelectLivros() {
+            let selectLivros = document.getElementById("livros");
+
+            for (let k = 0; k < en_kjv.length; k++) {
+                let option = document.createElement("option");
+                option.value = k;
+                option.innerText = en_kjv[k].name;
+                selectLivros.appendChild(option);
+            }
+        }
+
+        function createSelectCapitulos() {
+            let selectCapitulos = document.getElementById("capitulos");
+            selectCapitulos.innerHTML = "";
+            let livro = document.getElementById("livros").value;
+            for (let k = 0; k < en_kjv[livro].chapters.length; k++) {
+                let option = document.createElement("option");
+                option.value = k;
+                option.innerText = k + 1;
+                selectCapitulos.appendChild(option);
+            }
+        }
+
+        function createSelectVersos() {
+            let selectVersos = document.getElementById("versos");
+            selectVersos.innerHTML = "";
+            let livro = document.getElementById("livros").value;
+            let capitulo = document.getElementById("capitulos").value;
+            for (let k = 0; k < en_kjv[livro].chapters[capitulo].length; k++) {
+                let option = document.createElement("option");
+                option.value = k;
+                option.innerText = k + 1;
+                selectVersos.appendChild(option);
+            }
+        }
+
+        function addFunctions() {
+            let words = document.getElementsByTagName("w");
+            for (let k = 0; k < words.length; k++) {
+                words[k].setAttribute("onmouseover", "palavraOnMouseOver(this)");
+                words[k].setAttribute("onclick", "palavraOnClick(this)");
+                words[k].setAttribute("ondblclick", "palavraOnDoubleClick(this)");
+            }
+
+
+        }
+
+        function palavraOnMouseOver(elemento) {
+          
+             palavra = elemento.getAttribute("en");
+            let palavraTraduzida=traduzir(palavra);
+            document.getElementById("traducao").innerHTML="";
+            let palavraTraduzidaSplit=palavraTraduzida.split(" ");
+            for (let k=0;k<palavraTraduzidaSplit.length;k++){
+                s=document.createElement("siga");
+                s.setAttribute("en",palavraTraduzidaSplit[k]);
+                s.setAttribute("onclick","palavraOnMouseOver(this)");
+                s.innerText=palavraTraduzidaSplit[k]+ " ";
+                document.getElementById("traducao").appendChild(s);
+
+            }
+          
+
+        }
+
+        function palavraOnMouseOut(elemento) {
+            elemento.innerHTML = elemento.getAttribute("en");
+        }
+
+        function palavraOnClick(elemento) {
+            let palavra = elemento.getAttribute("en").replace(/_/g, '');
+            document.getElementById("idioma").innerText = 1;
+            dizer(palavra);
+        }
+
+        function dizer(palavra) {
+
+            palavraPronunciada = new SpeechSynthesisUtterance(palavra);
+            idioma = document.getElementById("idioma").innerText * 1;
+            palavraPronunciada.voice = window.speechSynthesis.getVoices()[idioma];
+            window.speechSynthesis.speak(palavraPronunciada);
+        }
+
+        function comparar(palavra) {
+            var SpeechRecognition = SpeechRecognition || webkitSpeechRecognition;
+            var SpeechGrammarList = SpeechGrammarList || webkitSpeechGrammarList;
+            var SpeechRecognitionEvent = SpeechRecognitionEvent || webkitSpeechRecognitionEvent;
+            var phrase = palavra;
+            var grammar = '#JSGF V1.0; grammar phrase; public <phrase> = ' + phrase + ';';
+            var recognition = new SpeechRecognition();
+            var speechRecognitionList = new SpeechGrammarList();
+            speechRecognitionList.addFromString(grammar, 1);
+            recognition.grammars = speechRecognitionList;
+            recognition.lang = 'en-US';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.start();
+
+
+            recognition.onresult = function (event) {
+                // The SpeechRecognitionEvent results property returns a SpeechRecognitionResultList object
+                // The SpeechRecognitionResultList object contains SpeechRecognitionResult objects.
+                // It has a getter so it can be accessed like an array
+                // The first [0] returns the SpeechRecognitionResult at position 0.
+                // Each SpeechRecognitionResult object contains SpeechRecognitionAlternative objects that contain individual results.
+                // These also have getters so they can be accessed like arrays.
+                // The second [0] returns the SpeechRecognitionAlternative at position 0.
+                // We then return the transcript property of the SpeechRecognitionAlternative object 
+                var speechResult = event.results[0][0].transcript.toLowerCase().replace(".", "");
+                phrase = phrase.toLowerCase().replace(".", "").replace(/\s+$/, '');
+
+                if (speechResult === phrase) {
+                    $.notify('I heard the correct phrase!', "success");
+
+                } else {
+                    $.notify('That didn\'t sound right.', "error");
+
+                }
+
+                $.notify('Speech received: ' + speechResult + '. Confidence: ' + event.results[0][0].confidence, "info");
+
+            }
+        }
+
+        function palavraOnDoubleClick(elemento) {
+
+            var phrase = elemento.getAttribute("en");
+            comparar(phrase);
+        }
+
+        function portugues() {
+            document.getElementById("verso").innerText =  document.getElementById("verso").getAttribute("pt");
+         
+        }
+
+        function ingles() {
+            document.getElementById("verso").innerText =  document.getElementById("verso").getAttribute("en");
+        }
+
+        function systemCall(codigo) {
+            script = document.createElement("script");
+            script.innerHTML = codigo;
+            document.body.appendChild(script);
+        }
+    </script>
+</head>
+
+<body onload="main();">
+    <div id="topo"></div>
+    Livros:<select id="livros" onchange="createSelectCapitulos();carregaVersos()"></select>
+    Capítulos:<select id="capitulos" onchange="createSelectVersos();carregaVersos()"></select>
+    Versículos:<select id="versos" onchange="carregaVersos();"></select>
+    <h1 id="titulo">Genesis 1:1</h1>
+    <variavel id="idioma" style="display: none">1</variavel>
+    <p class="big" id="verso" pt="No princípio criou Deus o céu e a terra." en="In the beginning God created the heaven and the earth.">
+        <w pt="Em" en="In">In</w>
+        <w pt="o" en="the">the</w>
+        <w pt="príncipio" en="beginning">beginning</w>
+        <w pt="Deus" en="God">God</w>
+        <w pt="criou" en="created">created</w>
+        <w pt="os" en="the">the</w>
+        <w pt="céus" en="heavens">heavens</w>
+        <w pt="e" en="and">and</w>
+        <w pt="a" en="the">the</w>
+        <w pt="terra" en="earth">earth</w> .
+
+    </p>
+    <button onclick="dizer(document.getElementById('verso').innerText)">Ouvir</button>
+    <button onclick="comparar(document.getElementById('verso').innerText)">Testar</button>
+    <button onclick="portugues()">Português</button>
+    <button onclick="ingles()">Inglês</button>
+
+    <br>
+    <p>Instruções:</p>    
+    <p>Clique na palavra para ouvir ela em inglês.</p>
+    <p>Duplo clique na palavra para pronunciar ela em inglês e testar sua pronuncia.</p>
+    <p>Botão Ouvir ouve toda a frase.</p>
+    <p>Botão Testar testa toda a frase.</p>
+    <p>Botão Português traduz toda a frase.</p>
+    <p>Botão Inglês traduz toda a frase.</p>
+    <p>Passe o mouse na palavra para aparecer o significado em inglês.</p>
+    <p>Clique em uma palavra do significado para mais detalhes</p>
+    <p>Significado:</p>
+    <p id="traducao"></p>
+</body>
+
+</html>
